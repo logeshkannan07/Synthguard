@@ -158,13 +158,14 @@ class SynthGuardEvidenceEngine:
         # ----------------------------------------------------
         # Final standardized result
         # ----------------------------------------------------
-
         return {
-            "media_type": "text",
-            "prediction": prediction,
-            "confidence": confidence,
-            "ai_probability": ai_probability,
-            "human_probability": human_probability,
-            "risk": risk,
-            "explanation": explanation
+             "media_type": "image",
+             "prediction": result["prediction"],
+             "confidence": result["confidence"],
+             "ai_probability": result["ai_probability"],
+             "real_probability": result["real_probability"],
+             "risk": result["risk"],
+             "explanation": result["explanation"],
+             "evidence": result["evidence"]
         }
+     
