@@ -10,7 +10,6 @@ class SynthGuardImageAnalyzer:
     def __init__(self):
 
         self.detector = SynthGuardImageDetector()
-
         self.metadata_analyzer = ImageMetadataAnalyzer()
 
 
@@ -20,16 +19,13 @@ class SynthGuardImageAnalyzer:
 
     def calculate_risk(self, ai_probability):
 
-        if ai_probability >= 0.80:
-
+        if ai_probability >= 80.0:
             return "HIGH"
 
-        elif ai_probability >= 0.50:
-
+        elif ai_probability >= 50.0:
             return "MEDIUM"
 
         else:
-
             return "LOW"
 
 
@@ -37,23 +33,18 @@ class SynthGuardImageAnalyzer:
     # EXPLANATION GENERATION
     # ========================================================
 
-    def generate_explanation(
-        self,
-        ai_probability,
-        metadata
-    ):
+    def generate_explanation(self, ai_probability, metadata):
 
         explanations = []
 
-
-        if ai_probability >= 0.80:
+        if ai_probability >= 80.0:
 
             explanations.append(
                 "The AI detector gives a high probability "
                 "that the image is AI-generated."
             )
 
-        elif ai_probability >= 0.50:
+        elif ai_probability >= 50.0:
 
             explanations.append(
                 "The AI detector gives a moderate probability "
@@ -66,7 +57,6 @@ class SynthGuardImageAnalyzer:
                 "The AI detector gives a higher probability "
                 "that the image is human/real."
             )
-
 
         if metadata["has_exif"]:
 
@@ -83,7 +73,6 @@ class SynthGuardImageAnalyzer:
                 "or social-media processing."
             )
 
-
         if (
             metadata["camera_make"]
             or metadata["camera_model"]
@@ -92,7 +81,6 @@ class SynthGuardImageAnalyzer:
             explanations.append(
                 "Camera information was found in the metadata."
             )
-
 
         return explanations
 
@@ -109,7 +97,6 @@ class SynthGuardImageAnalyzer:
                 f"Image not found: {image_path}"
             )
 
-
         # ----------------------------------------------------
         # AI DETECTION
         # ----------------------------------------------------
@@ -117,7 +104,6 @@ class SynthGuardImageAnalyzer:
         detector_result = self.detector.predict(
             image_path
         )
-
 
         # ----------------------------------------------------
         # METADATA ANALYSIS
@@ -127,36 +113,74 @@ class SynthGuardImageAnalyzer:
             image_path
         )
 
+        # ----------------------------------------------------
+        # RAW MODEL RESULTS
+        # ----------------------------------------------------
+
+        raw_ai_probability = float(
+            detector_result["ai_probability"]
+        )
+
+        raw_real_probability = float(
+            detector_result["real_probability"]
+        )
 
         # ----------------------------------------------------
-        # DETECTOR RESULTS
+        # CONVERT 0-1 TO 0-100 PERCENT
         # ----------------------------------------------------
 
-        ai_probability = detector_result[
-            "ai_probability"
-        ]
+        ai_probability = raw_ai_probability * 100.0
+        real_probability = raw_real_probability * 100.0
 
-        real_probability = detector_result[
-            "real_probability"
-        ]
+        # Keep values within valid percentage range
 
-        prediction = detector_result[
-            "prediction"
-        ]
+        ai_probability = max(
+            0.0,
+            min(100.0, ai_probability)
+        )
 
-        confidence = detector_result[
-            "confidence"
-        ]
-
+        real_probability = max(
+            0.0,
+            min(100.0, real_probability)
+        )
 
         # ----------------------------------------------------
-        # RISK LEVEL
+        # NORMALIZE TO 100%
+        # ----------------------------------------------------
+
+        total = ai_probability + real_probability
+
+        if total > 0:
+
+            ai_probability = (
+                ai_probability / total
+            ) * 100.0
+
+            real_probability = (
+                real_probability / total
+            ) * 100.0
+
+        # ----------------------------------------------------
+        # PREDICTION
+        # ----------------------------------------------------
+
+        if ai_probability >= real_probability:
+
+            prediction = "AI-generated"
+            confidence = ai_probability
+
+        else:
+
+            prediction = "Human/Real"
+            confidence = real_probability
+
+        # ----------------------------------------------------
+        # RISK
         # ----------------------------------------------------
 
         risk_level = self.calculate_risk(
             ai_probability
         )
-
 
         # ----------------------------------------------------
         # EXPLANATION
@@ -167,6 +191,18 @@ class SynthGuardImageAnalyzer:
             metadata
         )
 
+        # ----------------------------------------------------
+        # IMAGE INFORMATION
+        # ----------------------------------------------------
+
+        image_info = {
+            "filename": metadata.get("filename"),
+            "format": metadata.get("format"),
+            "width": metadata.get("width"),
+            "height": metadata.get("height"),
+            "color_mode": metadata.get("color_mode"),
+            "file_size_bytes": metadata.get("file_size_bytes")
+        }
 
         # ----------------------------------------------------
         # FINAL RESULT
@@ -184,8 +220,11 @@ class SynthGuardImageAnalyzer:
 
             "risk": risk_level,
 
+            "explanation": explanation,
+
             "evidence": metadata,
 
-            "explanation": explanation
+            "image_info": image_info,
 
+            "metadata": metadata
         }

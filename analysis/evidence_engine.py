@@ -12,14 +12,13 @@ class SynthGuardEvidenceEngine:
         print("Initializing SynthGuard Evidence Engine...")
         print()
 
-        # Image pipeline
         self.image_analyzer = SynthGuardImageAnalyzer()
 
-        # Text pipeline
         self.text_detector = SynthGuardTextDetector()
 
         print()
         print("Evidence Engine initialized successfully.")
+
 
     # ========================================================
     # IMAGE ANALYSIS
@@ -28,29 +27,61 @@ class SynthGuardEvidenceEngine:
     def analyze_image(self, image_path):
 
         if not isinstance(image_path, str):
+
             raise TypeError(
                 "Image path must be a string."
             )
 
         if not os.path.exists(image_path):
+
             raise FileNotFoundError(
                 f"Image not found: {image_path}"
             )
 
-        result = self.image_analyzer.analyze(image_path)
+        result = self.image_analyzer.analyze(
+            image_path
+        )
+
+        # ----------------------------------------------------
+        # Safety fallback for risk
+        # ----------------------------------------------------
+
+        ai_probability = float(
+            result["ai_probability"]
+        )
+
+        if ai_probability >= 80.0:
+            risk = "HIGH"
+
+        elif ai_probability >= 50.0:
+            risk = "MEDIUM"
+
+        else:
+            risk = "LOW"
 
         return {
+
             "media_type": "image",
+
             "prediction": result["prediction"],
+
             "confidence": result["confidence"],
+
             "ai_probability": result["ai_probability"],
+
             "real_probability": result["real_probability"],
-            "risk": result.get("risk"),
-            "explanation": result.get("explanation"),
-            "evidence": result.get("evidence"),
-            "image_info": result.get("image_info"),
-            "metadata": result.get("metadata")
+
+            "risk": risk,
+
+            "explanation": result["explanation"],
+
+            "evidence": result["evidence"],
+
+            "image_info": result["image_info"],
+
+            "metadata": result["metadata"]
         }
+
 
     # ========================================================
     # TEXT ANALYSIS
@@ -59,28 +90,35 @@ class SynthGuardEvidenceEngine:
     def analyze_text(self, text):
 
         if not isinstance(text, str):
+
             raise TypeError(
                 "Text must be a string."
             )
 
         if not text.strip():
+
             raise ValueError(
                 "Text cannot be empty."
             )
 
-        # Send text to ModernBERT
-        result = self.text_detector.predict(text)
+        # ----------------------------------------------------
+        # ModernBERT
+        # ----------------------------------------------------
+
+        detector_result = self.text_detector.predict(
+            text
+        )
 
         ai_probability = float(
-            result["ai_probability"]
+            detector_result["ai_probability"]
         )
 
         human_probability = float(
-            result["human_probability"]
+            detector_result["human_probability"]
         )
 
         # ----------------------------------------------------
-        # Keep probabilities valid
+        # Validate probabilities
         # ----------------------------------------------------
 
         ai_probability = max(
@@ -94,20 +132,23 @@ class SynthGuardEvidenceEngine:
         )
 
         # ----------------------------------------------------
-        # Normalize so probabilities total exactly 100%
+        # Normalize to exactly 100%
         # ----------------------------------------------------
 
-        total = ai_probability + human_probability
+        total = (
+            ai_probability +
+            human_probability
+        )
 
         if total > 0:
 
             ai_probability = (
                 ai_probability / total
-            ) * 100
+            ) * 100.0
 
             human_probability = (
                 human_probability / total
-            ) * 100
+            ) * 100.0
 
         # ----------------------------------------------------
         # Prediction
@@ -124,10 +165,10 @@ class SynthGuardEvidenceEngine:
             confidence = human_probability
 
         # ----------------------------------------------------
-        # Risk
+        # Risk + explanation
         # ----------------------------------------------------
 
-        if ai_probability >= 80:
+        if ai_probability >= 80.0:
 
             risk = "HIGH"
 
@@ -136,7 +177,7 @@ class SynthGuardEvidenceEngine:
                 "AI-generated according to the trained detector."
             )
 
-        elif ai_probability >= 50:
+        elif ai_probability >= 50.0:
 
             risk = "MEDIUM"
 
@@ -156,16 +197,22 @@ class SynthGuardEvidenceEngine:
             )
 
         # ----------------------------------------------------
-        # Final standardized result
+        # FINAL TEXT RESULT
         # ----------------------------------------------------
+
         return {
-             "media_type": "image",
-             "prediction": result["prediction"],
-             "confidence": result["confidence"],
-             "ai_probability": result["ai_probability"],
-             "real_probability": result["real_probability"],
-             "risk": result["risk"],
-             "explanation": result["explanation"],
-             "evidence": result["evidence"]
+
+            "media_type": "text",
+
+            "prediction": prediction,
+
+            "confidence": confidence,
+
+            "ai_probability": ai_probability,
+
+            "human_probability": human_probability,
+
+            "risk": risk,
+
+            "explanation": explanation
         }
-     
