@@ -182,7 +182,7 @@ class SynthGuardImageAnalyzer:
 
             "real_probability": real_probability,
 
-            "risk_level": risk_level,
+            "risk": risk_level,
 
             "evidence": metadata,
 
