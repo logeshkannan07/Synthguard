@@ -29,11 +29,8 @@ st.set_page_config(
 # ============================================================
 
 @st.cache_resource
-def load_engine():
+def load_engine(version="image-risk-fix-v2"):
     return SynthGuardEvidenceEngine()
-
-
-evidence_engine = load_engine()
 
 
 # ============================================================
