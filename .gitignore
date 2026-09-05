@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.ipynb_checkpoints/
+.env
+.venv/
+venv/
+
+.streamlit/secrets.toml
+
+*.log
+/tmp/
+
+# Local image testing dataset
+datasets/image_test/
